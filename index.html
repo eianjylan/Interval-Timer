@@ -383,7 +383,6 @@
        ========================================================= */
     .settings-grid {
       display: grid;
-      /* 5 欄結構：標籤 | 步進器1 | 單位1 | 步進器2 | 單位2 */
       grid-template-columns: 1fr 88px 20px 88px 20px;
       align-items: center;
       row-gap: 1.15rem;
@@ -412,7 +411,6 @@
     .dot.rest { background: var(--rest-color); box-shadow: 0 0 8px var(--rest-color); }
     .dot.sets { background: #38bdf8; box-shadow: 0 0 8px #38bdf8; }
 
-    /* 步進器外框 */
     .stepper {
       display: flex;
       align-items: center;
@@ -451,7 +449,6 @@
       background: rgba(255, 255, 255, 0.1);
     }
 
-    /* 支援手動輸入的 Input 樣式 */
     .step-input {
       width: 34px;
       background: transparent;
@@ -468,7 +465,6 @@
       padding: 0;
     }
 
-    /* 隱藏瀏覽器原生上下箭頭 */
     .step-input::-webkit-outer-spin-button,
     .step-input::-webkit-inner-spin-button {
       -webkit-appearance: none;
@@ -642,14 +638,17 @@
   </style>
 </head>
 <body>
-  <!-- iOS 專用背景音訊心跳與防暗屏媒體 -->
-  <audio id="bgSilentAudio" loop playsinline preload="auto" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"></audio>
-  <video id="bgSilentVideo" loop playsinline muted style="position:fixed;width:1px;height:1px;opacity:0.001;pointer-events:none;" src="data:video/mp4;base64,AAAAHGZ0eXBtcDQyAAAAAW1wNDJpc29tYXZjMQAAAAhmcmVlAAACKW1kYXQAAAKsAAACAA=="></video>
+
+  <!-- iOS 專屬背景硬體級解鎖音訊與保活音軌 -->
+  <audio id="audioKeepAlive" loop playsinline preload="auto"></audio>
+  <audio id="audioWorkAlert" playsinline preload="auto"></audio>
+  <audio id="audioRestAlert" playsinline preload="auto"></audio>
+  <audio id="audioDoneAlert" playsinline preload="auto"></audio>
+  <audio id="audioTickAlert" playsinline preload="auto"></audio>
 
   <div class="bg-glow" id="bgGlow"></div>
 
   <div class="container">
-    <!-- 頂部資訊列 -->
     <header>
       <div class="app-title">INTERVAL TIMER</div>
       <div class="header-actions">
@@ -669,7 +668,6 @@
       </div>
     </header>
 
-    <!-- 核心計時圓環 -->
     <div class="timer-display-wrap">
       <svg class="svg-ring" viewBox="0 0 320 320">
         <circle class="ring-bg" cx="160" cy="160" r="144" />
@@ -682,13 +680,11 @@
       </div>
     </div>
 
-    <!-- 總預估時間 -->
     <div class="total-time-bar">
       <span>預計總耗時:</span>
       <strong id="totalEstimatedTime" style="color:var(--text-muted)">02:30</strong>
     </div>
 
-    <!-- 主操作按鈕組 -->
     <div class="controls">
       <button class="btn btn-secondary" id="resetBtn" title="重設 (R)">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -709,7 +705,6 @@
       </button>
     </div>
 
-    <!-- 鍵盤快捷鍵提示 -->
     <div class="shortcuts-hint">
       <span><kbd>Space</kbd> 開始/暫停</span>
       <span><kbd>R</kbd> 重設</span>
@@ -717,9 +712,7 @@
     </div>
   </div>
 
-  <!-- =========================================================
-       設定彈出視窗 (Modal Dialog)
-       ========================================================= -->
+  <!-- 設定彈出視窗 -->
   <div class="modal-overlay" id="settingsModal">
     <div class="modal-card">
       <div class="modal-header">
@@ -727,10 +720,7 @@
         <button class="close-modal-btn" id="closeModalBtn" title="關閉">✕</button>
       </div>
 
-      <!-- 設定網格：CSS Grid 保證 100% 絕對垂直切齊 -->
       <div class="settings-grid">
-        
-        <!-- 1. 預備倒數 (前兩格留空，精準對齊到秒) -->
         <div class="setting-label">
           <span class="dot prep"></span>
           <span>預備倒數</span>
@@ -744,7 +734,6 @@
         </div>
         <span class="unit-text">秒</span>
 
-        <!-- 2. 運動時間 (分 + 秒) -->
         <div class="setting-label">
           <span class="dot work"></span>
           <span>運動時間</span>
@@ -762,7 +751,6 @@
         </div>
         <span class="unit-text">秒</span>
 
-        <!-- 3. 組間休息 (分 + 秒) -->
         <div class="setting-label">
           <span class="dot rest"></span>
           <span>組間休息</span>
@@ -780,7 +768,6 @@
         </div>
         <span class="unit-text">秒</span>
 
-        <!-- 4. 重複組數 (前兩格留空，精準對齊到最後一欄) -->
         <div class="setting-label">
           <span class="dot sets"></span>
           <span>重複組數</span>
@@ -793,10 +780,8 @@
           <button class="step-btn" data-action="inc" data-type="totalSets">+</button>
         </div>
         <span class="unit-text">組</span>
-
       </div>
 
-      <!-- 音量調整與英文人聲測試 -->
       <div class="volume-box">
         <div class="volume-title-row">
           <span>提示音量調整</span>
@@ -806,7 +791,7 @@
           <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="80">
         </div>
 
-        <div class="voice-test-label">試聽英文教練人聲:</div>
+        <div class="voice-test-label">試聽英文教練與警示音:</div>
         <div class="voice-test-grid">
           <button class="test-pill" id="testWorkVoiceBtn">
             <strong>開始運動</strong>
@@ -829,13 +814,87 @@
 
   <script>
     /* =========================================================
-       1. 英文人聲語音與音效引擎 (Web Speech API + Web Audio API)
+       1. 純前端生成合法 WAV 音效（讓 iOS 鎖屏硬體喇叭 100% 響鈴）
+       ========================================================= */
+    function generateBeepWavBlob(frequencies, durations, volumes, sampleRate = 22050) {
+      let totalSamples = 0;
+      durations.forEach(d => totalSamples += Math.floor(sampleRate * d));
+      
+      const buffer = new ArrayBuffer(44 + totalSamples);
+      const view = new DataView(buffer);
+
+      function writeStr(offset, str) {
+        for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+      }
+
+      writeStr(0, 'RIFF');
+      view.setUint32(4, 36 + totalSamples, true);
+      writeStr(8, 'WAVE');
+      writeStr(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true); // PCM
+      view.setUint16(22, 1, true); // Mono
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate, true);
+      view.setUint16(32, 1, true);
+      view.setUint16(34, 8, true); // 8-bit
+      writeStr(36, 'data');
+      view.setUint32(40, totalSamples, true);
+
+      let offset = 44;
+      for (let segment = 0; segment < frequencies.length; segment++) {
+        const freq = frequencies[segment];
+        const segSamples = Math.floor(sampleRate * durations[segment]);
+        const vol = volumes[segment] !== undefined ? volumes[segment] : 0.5;
+
+        for (let i = 0; i < segSamples; i++) {
+          const t = i / sampleRate;
+          let val = 128;
+          if (freq > 0) {
+            const wave = Math.sin(2 * Math.PI * freq * t);
+            const fade = Math.max(0, 1 - (i / segSamples) * 0.15); // 微弱衰減防爆音
+            val = 128 + Math.floor(wave * fade * vol * 126);
+          } else {
+            // 極微弱底噪信號（防 iOS 判定為 0 靜音審查）
+            val = 128 + (Math.sin(2 * Math.PI * 15 * t) > 0 ? 1 : -1);
+          }
+          view.setUint8(offset++, Math.min(255, Math.max(0, val)));
+        }
+      }
+
+      const blob = new Blob([buffer], { type: 'audio/wav' });
+      return URL.createObjectURL(blob);
+    }
+
+    // 建立 4 段專屬實體警示音 + 1 段 iOS 保活防休眠音軌
+    const audioKeepAlive = document.getElementById('audioKeepAlive');
+    const audioWorkAlert = document.getElementById('audioWorkAlert');
+    const audioRestAlert = document.getElementById('audioRestAlert');
+    const audioDoneAlert = document.getElementById('audioDoneAlert');
+    const audioTickAlert = document.getElementById('audioTickAlert');
+
+    try {
+      // 1. 保活循環音軌 (5秒，人耳不可聞但 iOS 晶片檢測為真實音訊)
+      audioKeepAlive.src = generateBeepWavBlob([0], [5.0], [0.01]);
+      // 2. 運動開始 (高頻急促雙升音)
+      audioWorkAlert.src = generateBeepWavBlob([784, 0, 1046], [0.12, 0.04, 0.22], [0.9, 0, 0.95]);
+      // 3. 休息開始 (柔和雙降音)
+      audioRestAlert.src = generateBeepWavBlob([659, 0, 523], [0.15, 0.05, 0.28], [0.85, 0, 0.8]);
+      // 4. 全部完成 (大三和弦號角)
+      audioDoneAlert.src = generateBeepWavBlob([523, 659, 784, 1046], [0.15, 0.15, 0.18, 0.6], [0.85, 0.85, 0.9, 1.0]);
+      // 5. 倒數短逼聲
+      audioTickAlert.src = generateBeepWavBlob([784], [0.08], [0.7]);
+    } catch (e) {
+      console.warn('WAV generation failed:', e);
+    }
+
+    /* =========================================================
+       2. 音效與英文人聲引擎
        ========================================================= */
     class SoundEngine {
       constructor() {
-        this.ctx = null;
-        this.isMuted = false;
         this.volume = 0.8;
+        this.isMuted = false;
         this.synth = window.speechSynthesis;
         this.selectedVoice = null;
 
@@ -855,30 +914,47 @@
         ) || voices.find(v => v.lang.startsWith('en')) || null;
       }
 
-      initContext() {
-        if (!this.ctx) {
-          const AudioContext = window.AudioContext || window.webkitAudioContext;
-          if (AudioContext) {
-            this.ctx = new AudioContext();
-          }
-        }
-        if (this.ctx && this.ctx.state === 'suspended') {
-          this.ctx.resume();
-        }
-      }
-
       setVolume(valPercent) {
         this.volume = Math.max(0, Math.min(100, valPercent)) / 100;
         this.isMuted = (this.volume === 0);
+        this.updateAudioVolumes();
+      }
+
+      updateAudioVolumes() {
+        const v = this.isMuted ? 0 : this.volume;
+        audioWorkAlert.volume = v;
+        audioRestAlert.volume = v;
+        audioDoneAlert.volume = v;
+        audioTickAlert.volume = v;
       }
 
       toggleMute() {
         this.isMuted = !this.isMuted;
+        this.updateAudioVolumes();
         return this.isMuted;
       }
 
+      // iOS 硬體解鎖：在首次點擊時預載並解鎖所有實體音訊標籤
+      unlockIosAudio() {
+        [audioKeepAlive, audioWorkAlert, audioRestAlert, audioDoneAlert, audioTickAlert].forEach(a => {
+          try {
+            a.volume = this.isMuted ? 0 : this.volume;
+            const p = a.play();
+            if (p && p.then) {
+              p.then(() => {
+                if (a !== audioKeepAlive) {
+                  a.pause();
+                  a.currentTime = 0;
+                }
+              }).catch(() => {});
+            }
+          } catch (e) {}
+        });
+      }
+
       speak(text, rate = 1.05, pitch = 1.0) {
-        if (this.isMuted || this.volume <= 0 || !this.synth) return;
+        // 僅在螢幕亮起/前台時呼叫（避免 iOS 鎖屏拋出阻塞錯誤）
+        if (this.isMuted || this.volume <= 0 || !this.synth || document.visibilityState !== 'visible') return;
 
         try {
           this.synth.cancel();
@@ -887,34 +963,25 @@
           utter.volume = this.volume;
           utter.rate = rate;
           utter.pitch = pitch;
-
-          if (!this.selectedVoice) {
-            this.loadVoices();
-          }
-          if (this.selectedVoice) {
-            utter.voice = this.selectedVoice;
-          }
-
+          if (this.selectedVoice) utter.voice = this.selectedVoice;
           this.synth.speak(utter);
-        } catch (e) {
-          console.warn('SpeechSynthesis error:', e);
-        }
+        } catch (e) {}
       }
 
       playWorkStart() {
-        this.initContext();
-        this._tone(587.33, 'triangle', 0, 0.1, 0.18 * this.volume);
-        setTimeout(() => {
-          this.speak("Work!", 1.15, 1.05);
-        }, 80);
+        if (!this.isMuted && this.volume > 0) {
+          audioWorkAlert.currentTime = 0;
+          audioWorkAlert.play().catch(() => {});
+        }
+        setTimeout(() => { this.speak("Work!", 1.15, 1.05); }, 80);
       }
 
       playRestStart() {
-        this.initContext();
-        this._tone(523.25, 'sine', 0, 0.15, 0.18 * this.volume);
-        setTimeout(() => {
-          this.speak("Rest!", 1.0, 0.95);
-        }, 100);
+        if (!this.isMuted && this.volume > 0) {
+          audioRestAlert.currentTime = 0;
+          audioRestAlert.play().catch(() => {});
+        }
+        setTimeout(() => { this.speak("Rest!", 1.0, 0.95); }, 80);
       }
 
       playPrepStart() {
@@ -922,48 +989,27 @@
       }
 
       playCountdownVoice(number) {
+        if (!this.isMuted && this.volume > 0) {
+          audioTickAlert.currentTime = 0;
+          audioTickAlert.play().catch(() => {});
+        }
         const words = { 3: "Three", 2: "Two", 1: "One" };
-        const word = words[number] || String(number);
-        this.speak(word, 1.2, 1.0);
+        this.speak(words[number] || String(number), 1.25, 1.0);
       }
 
       playVictory() {
-        this.initContext();
-        if (this.ctx) {
-          [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
-            this._tone(freq, 'triangle', idx * 0.14, 0.22, 0.2 * this.volume);
-          });
+        if (!this.isMuted && this.volume > 0) {
+          audioDoneAlert.currentTime = 0;
+          audioDoneAlert.play().catch(() => {});
         }
-        setTimeout(() => {
-          this.speak("Workout complete! Great job!", 1.0, 1.05);
-        }, 200);
-      }
-
-      _tone(frequency, type, delay, duration, maxVolume = 0.2) {
-        if (!this.ctx || maxVolume <= 0.0001) return;
-        const startTime = this.ctx.currentTime + delay;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        osc.type = type;
-        osc.frequency.setValueAtTime(frequency, startTime);
-
-        gain.gain.setValueAtTime(0.0001, startTime);
-        gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, maxVolume), startTime + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-
-        osc.start(startTime);
-        osc.stop(startTime + duration);
+        setTimeout(() => { this.speak("Workout complete! Great job!", 1.0, 1.05); }, 250);
       }
     }
 
     const soundFx = new SoundEngine();
 
     /* =========================================================
-       2. 計時器核心狀態 (Timer Engine)
+       3. 核心計時引擎（Web Worker + 真實時間戳）
        ========================================================= */
     const STATE = {
       IDLE: 'IDLE',
@@ -987,10 +1033,12 @@
     let currentSet = 1;
     let secondsLeft = 30;
     let phaseTotalDuration = 30;
-    let timerInterval = null;
+    let phaseEndTime = 0;
     let wakeLock = null;
+    let worker = null;
+    let fallbackInterval = null;
 
-    // DOM 元素
+    // DOM
     const phaseBadge = document.getElementById('phaseBadge');
     const timeDisplay = document.getElementById('timeDisplay');
     const roundDisplay = document.getElementById('roundDisplay');
@@ -1009,7 +1057,6 @@
     const volumeSlider = document.getElementById('volumeSlider');
     const volumeValText = document.getElementById('volumeValText');
 
-    // 輸入框 DOM
     const inputPrepSec = document.getElementById('prepSec');
     const inputWorkMin = document.getElementById('workMin');
     const inputWorkSec = document.getElementById('workSec');
@@ -1021,7 +1068,139 @@
     progressRing.style.strokeDasharray = RING_CIRCUMFERENCE;
 
     /* =========================================================
-       3. 畫面更新與色彩
+       4. Web Worker 獨立線程（保證 iOS 鎖屏計時不被急凍）
+       ========================================================= */
+    function initTimerWorker() {
+      if (window.Worker && !worker) {
+        try {
+          const blob = new Blob([`
+            let interval = null;
+            self.onmessage = function(e) {
+              if (e.data === 'start') {
+                if (interval) clearInterval(interval);
+                interval = setInterval(function() {
+                  self.postMessage('tick');
+                }, 200);
+              } else if (e.data === 'stop') {
+                if (interval) clearInterval(interval);
+                interval = null;
+              }
+            };
+          `], { type: 'application/javascript' });
+          worker = new Worker(URL.createObjectURL(blob));
+          worker.onmessage = function(e) {
+            if (e.data === 'tick') {
+              checkTimerTick();
+            }
+          };
+        } catch (e) {
+          console.warn('Worker init error:', e);
+        }
+      }
+    }
+
+    /* =========================================================
+       5. 終極防暗屏（NoSleep 實體 Canvas 影片串流）
+       ========================================================= */
+    let noSleepVideo = null;
+    let canvasStreamInterval = null;
+
+    function enableAntiDim() {
+      // 1. 系統原生 WakeLock API
+      if ('wakeLock' in navigator) {
+        navigator.wakeLock.request('screen').then(lock => {
+          wakeLock = lock;
+          wakeLock.addEventListener('release', () => { wakeLock = null; });
+        }).catch(() => {});
+      }
+
+      // 2. 注入 NoSleep 實體串流（iOS 只要偵測到 Video Stream 正在播放，100% 絕對不會自動熄屏）
+      try {
+        if (!noSleepVideo) {
+          noSleepVideo = document.createElement('video');
+          noSleepVideo.setAttribute('playsinline', '');
+          noSleepVideo.setAttribute('webkit-playsinline', '');
+          noSleepVideo.muted = true;
+          noSleepVideo.style.position = 'fixed';
+          noSleepVideo.style.width = '1px';
+          noSleepVideo.style.height = '1px';
+          noSleepVideo.style.opacity = '0.001';
+          noSleepVideo.style.pointerEvents = 'none';
+          document.body.appendChild(noSleepVideo);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 16;
+        canvas.height = 16;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, 16, 16);
+
+        if (canvas.captureStream) {
+          noSleepVideo.srcObject = canvas.captureStream(1);
+          noSleepVideo.play().catch(() => {});
+        }
+
+        // 定期翻轉像素保活
+        if (!canvasStreamInterval) {
+          let toggle = false;
+          canvasStreamInterval = setInterval(() => {
+            toggle = !toggle;
+            ctx.fillStyle = toggle ? '#020202' : '#000000';
+            ctx.fillRect(0, 0, 1, 1);
+          }, 2000);
+        }
+      } catch (e) {}
+
+      // 3. 啟動保活音訊軌道
+      try {
+        audioKeepAlive.play().catch(() => {});
+      } catch (e) {}
+    }
+
+    function disableAntiDim() {
+      if (wakeLock) {
+        wakeLock.release().then(() => { wakeLock = null; }).catch(() => {});
+      }
+      if (noSleepVideo) {
+        noSleepVideo.pause();
+      }
+      if (canvasStreamInterval) {
+        clearInterval(canvasStreamInterval);
+        canvasStreamInterval = null;
+      }
+      audioKeepAlive.pause();
+    }
+
+    /* =========================================================
+       6. iOS 鎖定畫面卡片（MediaSession）
+       ========================================================= */
+    function updateMediaSession() {
+      if ('mediaSession' in navigator) {
+        let phaseText = 'WORK';
+        if (currentPhase === STATE.PREP) phaseText = 'GET READY';
+        else if (currentPhase === STATE.REST) phaseText = 'REST';
+        else if (currentPhase === STATE.DONE) phaseText = 'COMPLETE!';
+        else if (currentPhase === STATE.IDLE) phaseText = 'READY';
+
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: `${phaseText} (${formatTime(secondsLeft)})`,
+          artist: `Set ${currentSet} / ${config.totalSets} • Interval Timer`,
+          album: 'Interval Timer by Eian',
+          artwork: [{ src: 'icon.png', sizes: '512x512', type: 'image/png' }]
+        });
+        navigator.mediaSession.playbackState = isRunning ? 'playing' : 'paused';
+      }
+    }
+
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.setActionHandler('play', () => { if (!isRunning) toggleTimer(); });
+      navigator.mediaSession.setActionHandler('pause', () => { if (isRunning) toggleTimer(); });
+      navigator.mediaSession.setActionHandler('nexttrack', () => { skipPhase(); });
+    }
+
+    /* =========================================================
+       7. 計時邏輯與時間戳比對
        ========================================================= */
     function formatTime(totalSec) {
       const m = Math.floor(totalSec / 60);
@@ -1094,41 +1273,6 @@
       totalEstimatedTime.textContent = formatTime(calculateTotalEstimatedSeconds());
     }
 
-    /* =========================================================
-       4. 計時邏輯運算
-       ========================================================= */
-    let phaseEndTime = 0;
-
-    // 背景防休眠媒體
-    const bgSilentAudio = document.getElementById('bgSilentAudio');
-    const bgSilentVideo = document.getElementById('bgSilentVideo');
-
-    function updateMediaSession() {
-      if ('mediaSession' in navigator) {
-        let phaseText = 'WORK';
-        if (currentPhase === STATE.PREP) phaseText = 'GET READY';
-        else if (currentPhase === STATE.REST) phaseText = 'REST';
-        else if (currentPhase === STATE.DONE) phaseText = 'COMPLETE!';
-        else if (currentPhase === STATE.IDLE) phaseText = 'READY';
-
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: `${phaseText} (${formatTime(secondsLeft)})`,
-          artist: `Set ${currentSet} / ${config.totalSets} • Interval Timer`,
-          album: 'Interval Timer by Eian',
-          artwork: [
-            { src: 'icon.png', sizes: '512x512', type: 'image/png' }
-          ]
-        });
-        navigator.mediaSession.playbackState = isRunning ? 'playing' : 'paused';
-      }
-    }
-
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.setActionHandler('play', () => { if (!isRunning) toggleTimer(); });
-      navigator.mediaSession.setActionHandler('pause', () => { if (isRunning) toggleTimer(); });
-      navigator.mediaSession.setActionHandler('nexttrack', () => { skipPhase(); });
-    }
-
     function getWorkDuration() {
       return config.workMin * 60 + config.workSec;
     }
@@ -1148,8 +1292,10 @@
     }
 
     function startTimer() {
-      soundFx.initContext();
-      requestWakeLock();
+      // 點擊當下完成 iOS 系統級音訊與全屏解鎖
+      soundFx.unlockIosAudio();
+      enableAntiDim();
+      initTimerWorker();
 
       if (currentPhase === STATE.IDLE || currentPhase === STATE.DONE) {
         currentSet = 1;
@@ -1162,7 +1308,6 @@
           soundFx.playWorkStart();
         }
       } else {
-        // 從暫停恢復，根據當前剩餘秒數重新計算目標結束時間
         phaseEndTime = Date.now() + secondsLeft * 1000;
       }
 
@@ -1170,8 +1315,11 @@
       startBtnText.textContent = 'PAUSE';
       startBtn.style.opacity = '0.92';
 
-      if (timerInterval) clearInterval(timerInterval);
-      timerInterval = setInterval(checkTimerTick, 250); // 高頻率輪詢
+      // 啟動雙重計時輪詢 (Worker + 主線程 fallback)
+      if (worker) worker.postMessage('start');
+      if (fallbackInterval) clearInterval(fallbackInterval);
+      fallbackInterval = setInterval(checkTimerTick, 200);
+
       updateDisplay();
       updateMediaSession();
     }
@@ -1180,20 +1328,19 @@
       isRunning = false;
       startBtnText.textContent = 'RESUME';
       startBtn.style.opacity = '1';
-      if (timerInterval) clearInterval(timerInterval);
-      releaseWakeLock();
+
+      if (worker) worker.postMessage('stop');
+      if (fallbackInterval) clearInterval(fallbackInterval);
+      disableAntiDim();
       updateMediaSession();
     }
 
     function toggleTimer() {
-      if (isRunning) {
-        pauseTimer();
-      } else {
-        startTimer();
-      }
+      if (isRunning) pauseTimer();
+      else startTimer();
     }
 
-    // 時間戳精準校準：即使螢幕鎖定或被系統降頻，時間也分秒不差
+    // 核心心跳校準：比對真實時間戳，絕不被系統急凍阻斷
     function checkTimerTick() {
       if (!isRunning || currentPhase === STATE.IDLE || currentPhase === STATE.DONE) return;
 
@@ -1215,35 +1362,26 @@
       }
     }
 
-    // 利用無聲音軌的 timeupdate 作為 iOS 鎖屏背景心跳（iOS 鎖屏不會停止音軌事件）
-    bgSilentAudio.addEventListener('timeupdate', () => {
-      if (isRunning) {
-        checkTimerTick();
-      }
-    });
-
-    // 螢幕重新喚醒或切換回本分頁時，立即校準時間
+    // 螢幕解鎖或重新打開時，瞬間校準真實時間
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         if (isRunning) {
           checkTimerTick();
-          requestWakeLock(); // 重新申請螢幕常亮
+          enableAntiDim(); // 重新申請螢幕長亮
         }
       }
     });
 
     function transitionPhase() {
       if (currentPhase === STATE.PREP) {
-        // 預備結束 -> 第一組運動
         enterPhase(STATE.WORK, getWorkDuration());
         soundFx.playWorkStart();
       } else if (currentPhase === STATE.WORK) {
-        // 運動結束
         if (currentSet < config.totalSets) {
           const restDuration = getRestDuration();
           if (restDuration > 0) {
             enterPhase(STATE.REST, restDuration);
-            soundFx.playRestStart(); // 即使在口袋鎖屏，也會發出清晰提示音
+            soundFx.playRestStart(); // 即使在口袋黑屏，耳機與喇叭也會大聲響起
           } else {
             currentSet++;
             enterPhase(STATE.WORK, getWorkDuration());
@@ -1268,7 +1406,8 @@
     }
 
     function finishWorkout() {
-      if (timerInterval) clearInterval(timerInterval);
+      if (worker) worker.postMessage('stop');
+      if (fallbackInterval) clearInterval(fallbackInterval);
       isRunning = false;
       currentPhase = STATE.DONE;
       secondsLeft = 0;
@@ -1277,12 +1416,13 @@
       startBtnText.textContent = 'AGAIN';
       soundFx.playVictory();
       updateDisplay();
-      releaseWakeLock();
+      disableAntiDim();
       updateMediaSession();
     }
 
     function resetTimer() {
-      if (timerInterval) clearInterval(timerInterval);
+      if (worker) worker.postMessage('stop');
+      if (fallbackInterval) clearInterval(fallbackInterval);
       isRunning = false;
       currentPhase = STATE.IDLE;
       currentSet = 1;
@@ -1291,12 +1431,12 @@
       setPhaseTheme(STATE.IDLE);
       startBtnText.textContent = 'START';
       updateDisplay();
-      releaseWakeLock();
+      disableAntiDim();
       updateMediaSession();
     }
 
     /* =========================================================
-       5. 本地快取 (LocalStorage) 與彈窗管理
+       8. 本地快取 (LocalStorage) 與彈窗管理
        ========================================================= */
     const STORAGE_KEY = 'minimalist_workout_timer_settings_v1';
 
@@ -1308,9 +1448,7 @@
           isMuted: soundFx.isMuted
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-      } catch (e) {
-        console.warn('LocalStorage save failed:', e);
-      }
+      } catch (e) {}
     }
 
     function loadConfigFromStorage() {
@@ -1336,9 +1474,7 @@
             syncMuteIcon(data.isMuted);
           }
         }
-      } catch (e) {
-        console.warn('LocalStorage load failed:', e);
-      }
+      } catch (e) {}
     }
 
     function openModal() {
@@ -1355,15 +1491,11 @@
     modalDoneBtn.addEventListener('click', closeModal);
 
     settingsModal.addEventListener('click', (e) => {
-      if (e.target === settingsModal) {
-        closeModal();
-      }
+      if (e.target === settingsModal) closeModal();
     });
 
-    // 步進調整
     function adjustSetting(type, action) {
       if (isRunning) return;
-
       const delta = action === 'inc' ? 1 : -1;
 
       switch (type) {
@@ -1396,31 +1528,18 @@
       saveConfigToStorage();
     }
 
-    // 手動輸入值驗證與套用
     function handleManualInput(type, inputEl) {
       if (isRunning) return;
       let val = parseInt(inputEl.value, 10);
       if (isNaN(val) || val < 0) val = 0;
 
       switch (type) {
-        case 'prepSec':
-          config.prepSec = Math.min(60, val);
-          break;
-        case 'workMin':
-          config.workMin = Math.min(59, val);
-          break;
-        case 'workSec':
-          config.workSec = Math.min(59, val);
-          break;
-        case 'restMin':
-          config.restMin = Math.min(59, val);
-          break;
-        case 'restSec':
-          config.restSec = Math.min(59, val);
-          break;
-        case 'totalSets':
-          config.totalSets = Math.max(1, Math.min(99, val));
-          break;
+        case 'prepSec': config.prepSec = Math.min(60, val); break;
+        case 'workMin': config.workMin = Math.min(59, val); break;
+        case 'workSec': config.workSec = Math.min(59, val); break;
+        case 'restMin': config.restMin = Math.min(59, val); break;
+        case 'restSec': config.restSec = Math.min(59, val); break;
+        case 'totalSets': config.totalSets = Math.max(1, Math.min(99, val)); break;
       }
 
       if (config.workMin === 0 && config.workSec === 0) {
@@ -1452,82 +1571,24 @@
       { id: 'totalSets', type: 'totalSets' }
     ].forEach(({ id, type }) => {
       const el = document.getElementById(id);
-      
-      // 點擊即全選內容，方便使用者直接打字
-      el.addEventListener('focus', () => {
-        el.select();
-      });
-
-      // 離開焦點或按 Enter 時驗證
-      el.addEventListener('blur', () => {
-        handleManualInput(type, el);
-      });
-
-      el.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          el.blur();
-        }
-      });
+      el.addEventListener('focus', () => el.select());
+      el.addEventListener('blur', () => handleManualInput(type, el));
+      el.addEventListener('keydown', (e) => { if (e.key === 'Enter') el.blur(); });
     });
 
     /* =========================================================
-       6. 喚醒螢幕常亮 (Screen Wake Lock API + NoSleep 雙重防休眠)
-       ========================================================= */
-    async function requestWakeLock() {
-      // 1. 系統層級螢幕鎖定常亮
-      if ('wakeLock' in navigator) {
-        try {
-          if (!wakeLock) {
-            wakeLock = await navigator.wakeLock.request('screen');
-            wakeLock.addEventListener('release', () => {
-              wakeLock = null;
-            });
-          }
-        } catch (err) {}
-      }
-
-      // 2. iOS 專用防變暗休眠 (只要有微小影片播放，iOS 絕對不會自動變暗關屏)
-      if (bgSilentVideo) {
-        bgSilentVideo.play().catch(() => {});
-      }
-
-      // 3. 啟動背景音訊通道（佔用 iOS Audio Session，確保按電源鍵鎖屏依然維持心跳發聲）
-      if (bgSilentAudio) {
-        bgSilentAudio.play().catch(() => {});
-      }
-    }
-
-    function releaseWakeLock() {
-      if (wakeLock) {
-        wakeLock.release().then(() => {
-          wakeLock = null;
-        }).catch(() => {});
-      }
-      if (bgSilentVideo) {
-        bgSilentVideo.pause();
-      }
-      if (bgSilentAudio) {
-        bgSilentAudio.pause();
-      }
-    }
-
-    /* =========================================================
-       7. 事件綁定與音效測試
+       9. 事件綁定與音量控制
        ========================================================= */
     startBtn.addEventListener('click', toggleTimer);
     resetBtn.addEventListener('click', resetTimer);
     skipBtn.addEventListener('click', skipPhase);
 
-    // 步進器按鈕委託
     document.querySelectorAll('.step-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const action = btn.dataset.action;
-        const type = btn.dataset.type;
-        adjustSetting(type, action);
+        adjustSetting(btn.dataset.type, btn.dataset.action);
       });
     });
 
-    // 音量滑桿
     volumeSlider.addEventListener('input', (e) => {
       const val = parseInt(e.target.value, 10);
       volumeValText.textContent = `${val}%`;
@@ -1553,7 +1614,6 @@
       }
     }
 
-    // 靜音切換
     soundToggleBtn.addEventListener('click', () => {
       const isMuted = soundFx.toggleMute();
       syncMuteIcon(isMuted);
@@ -1566,35 +1626,30 @@
       saveConfigToStorage();
     });
 
-    // 英文人聲試聽按鈕
+    // 試聽按鈕
     document.getElementById('testWorkVoiceBtn').addEventListener('click', () => {
+      soundFx.unlockIosAudio();
       soundFx.playWorkStart();
     });
     document.getElementById('testRestVoiceBtn').addEventListener('click', () => {
+      soundFx.unlockIosAudio();
       soundFx.playRestStart();
     });
     document.getElementById('testFinishVoiceBtn').addEventListener('click', () => {
+      soundFx.unlockIosAudio();
       soundFx.playVictory();
     });
 
     // 鍵盤操作
     window.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      if (e.code === 'Space') {
-        e.preventDefault();
-        toggleTimer();
-      } else if (e.code === 'KeyR') {
-        e.preventDefault();
-        resetTimer();
-      } else if (e.code === 'KeyM') {
-        e.preventDefault();
-        soundToggleBtn.click();
-      } else if (e.code === 'Escape') {
-        closeModal();
-      }
+      if (e.code === 'Space') { e.preventDefault(); toggleTimer(); }
+      else if (e.code === 'KeyR') { e.preventDefault(); resetTimer(); }
+      else if (e.code === 'KeyM') { e.preventDefault(); soundToggleBtn.click(); }
+      else if (e.code === 'Escape') { closeModal(); }
     });
 
-    // 初始化頁面 (先讀取本地快取，再更新 UI 與計時器)
+    // 初始化
     loadConfigFromStorage();
     updateSettingsInputs();
     resetTimer();
