@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>極簡運動計時器 | Minimalist Interval Timer</title>
+  <style>
+    :root {
+      --bg-color: #090a0f;
+      --card-bg: rgba(255, 255, 255, 0.04);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-border-hover: rgba(255, 255, 255, 0.18);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --work-color: #10b981;       /* 運動：電光翠綠 */
+      --work-glow: rgba(16, 185, 129, 0.28);
+      --rest-color: #f59e0b;       /* 休息：活力琥珀橙 */
+      --rest-glow: rgba(245, 158, 11, 0.28);
+      --prep-color: #6366f1;       /* 準備：冷調靛藍 */
+      --prep-glow: rgba(99, 102, 241, 0.28);
+      --finish-color: #a855f7;     /* 完成：極光紫 */
+      --finish-glow: rgba(168, 85, 247, 0.35);
+
+      --active-color: var(--work-color);
+      --active-glow: var(--work-glow);
+
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      overflow-x: hidden;
+      transition: background-color 0.5s ease;
+    }
+
+    /* 背景柔和微光 */
+    .bg-glow {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--active-glow) 0%, rgba(9, 10, 15, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+      transition: background 0.8s ease;
+      opacity: 0.65;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2.25rem;
+    }
+
+    /* 頂部導航列 */
+    header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 0.5rem;
+    }
+
+    .app-title {
+      font-size: 0.82rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .icon-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      border-radius: 9999px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .icon-btn:hover {
+      color: var(--text-main);
+      border-color: var(--card-border-hover);
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    .icon-btn.active {
+      color: var(--active-color);
+      border-color: var(--active-color);
+    }
+
+    /* 主計時圓環 */
+    .timer-display-wrap {
+      position: relative;
+      width: 320px;
+      height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .svg-ring {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .ring-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.05);
+      stroke-width: 8;
+    }
+
+    .ring-progress {
+      fill: none;
+      stroke: var(--active-color);
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-dasharray: 904;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 0.25s linear, stroke 0.5s ease;
+      filter: drop-shadow(0 0 12px var(--active-color));
+    }
+
+    .timer-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .phase-badge {
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--active-color);
+      margin-bottom: 0.35rem;
+      padding: 0.25rem 0.9rem;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.3s ease;
+    }
+
+    .time-text {
+      font-size: 4.8rem;
+      font-weight: 300;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      color: var(--text-main);
+      margin: 0.35rem 0 0.6rem;
+      text-shadow: 0 0 30px rgba(255, 255, 255, 0.12);
+    }
+
+    .round-info {
+      font-size: 1rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      letter-spacing: 0.06em;
+    }
+
+    /* 總耗時資訊 */
+    .total-time-bar {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    /* 控制按鈕組 */
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+      width: 100%;
+    }
+
+    .btn {
+      border: none;
+      outline: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-main {
+      background: var(--active-color);
+      color: #05070a;
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 0.95rem 2.75rem;
+      border-radius: 9999px;
+      box-shadow: 0 4px 24px var(--active-glow);
+      min-width: 155px;
+    }
+
+    .btn-main:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 32px var(--active-glow);
+      filter: brightness(1.1);
+    }
+
+    .btn-main:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      font-size: 1.15rem;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--card-border-hover);
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-1px);
+    }
+
+    /* 快捷鍵提示 */
+    .shortcuts-hint {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-align: center;
+      display: flex;
+      gap: 1.25rem;
+      opacity: 0.75;
+    }
+
+    kbd {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      padding: 0.15rem 0.4rem;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    /* =========================================================
+       彈出視窗 (Modal Overlay & Popup Window)
+       ========================================================= */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(5, 7, 12, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-card {
+      background: #12141c;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 24px;
+      width: 100%;
+      max-width: 440px;
+      padding: 1.75rem;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 255, 255, 0.03);
+      transform: translateY(20px) scale(0.97);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      gap: 1.4rem;
+    }
+
+    .modal-overlay.open .modal-card {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 1rem;
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-main);
+    }
+
+    .close-modal-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 1.4rem;
+      line-height: 1;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .close-modal-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* =========================================================
+       CSS GRID 嚴格對齊排版 (100% 垂直齊頭齊尾)
+       ========================================================= */
+    .settings-grid {
+      display: grid;
+      /* 5 欄結構：標籤 | 步進器1 | 單位1 | 步進器2 | 單位2 */
+      grid-template-columns: 1fr 88px 20px 88px 20px;
+      align-items: center;
+      row-gap: 1.15rem;
+      column-gap: 0.35rem;
+    }
+
+    .setting-label {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      white-space: nowrap;
+    }
+
+    .setting-label .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot.prep { background: var(--prep-color); box-shadow: 0 0 8px var(--prep-color); }
+    .dot.work { background: var(--work-color); box-shadow: 0 0 8px var(--work-color); }
+    .dot.rest { background: var(--rest-color); box-shadow: 0 0 8px var(--rest-color); }
+    .dot.sets { background: #38bdf8; box-shadow: 0 0 8px #38bdf8; }
+
+    /* 步進器外框 */
+    .stepper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 0.15rem 0.25rem;
+      width: 88px;
+      transition: border-color 0.2s;
+    }
+
+    .stepper:focus-within {
+      border-color: var(--active-color);
+      box-shadow: 0 0 8px var(--active-glow);
+    }
+
+    .step-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 1.15rem;
+      width: 24px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .step-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* 支援手動輸入的 Input 樣式 */
+    .step-input {
+      width: 34px;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: inherit;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      user-select: text;
+      -moz-appearance: textfield;
+      padding: 0;
+    }
+
+    /* 隱藏瀏覽器原生上下箭頭 */
+    .step-input::-webkit-outer-spin-button,
+    .step-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .unit-text {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      text-align: center;
+      width: 20px;
+    }
+
+    .grid-empty {
+      width: 88px;
+      visibility: hidden;
+    }
+
+    .grid-empty-unit {
+      width: 20px;
+      visibility: hidden;
+    }
+
+    /* 音量與英文人聲測試區塊 */
+    .volume-box {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .volume-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .volume-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .volume-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 9999px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--active-color);
+      box-shadow: 0 0 10px var(--active-color);
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .volume-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .volume-val-text {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-main);
+      min-width: 40px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .voice-test-label {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      margin-top: 0.15rem;
+    }
+
+    .voice-test-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+
+    .test-pill {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 0.45rem 0.3rem;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.15rem;
+    }
+
+    .test-pill span.sub {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+    }
+
+    .test-pill:hover {
+      color: var(--text-main);
+      border-color: var(--card-border-hover);
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    /* 彈窗完成按鈕 */
+    .modal-save-btn {
+      margin-top: 0.25rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 0.75rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .modal-save-btn:hover {
+      background: var(--active-color);
+      color: #05070a;
+      border-color: var(--active-color);
+    }
+
+    @media (max-width: 480px) {
+      .timer-display-wrap {
+        width: 280px;
+        height: 280px;
+      }
+      .ring-progress, .ring-bg {
+        r: 125;
+        cx: 140;
+        cy: 140;
+        stroke-dasharray: 785;
+      }
+      .time-text {
+        font-size: 4rem;
+      }
+      .container {
+        gap: 1.5rem;
+      }
+      .settings-grid {
+        grid-template-columns: 1fr 80px 18px 80px 18px;
+      }
+      .stepper {
+        width: 80px;
+      }
+      .grid-empty {
+        width: 80px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-glow" id="bgGlow"></div>
+
+  <div class="container">
+    <!-- 頂部資訊列 -->
+    <header>
+      <div class="app-title">INTERVAL TIMER</div>
+      <div class="header-actions">
+        <button class="icon-btn" id="soundToggleBtn" title="開關靜音 (M)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="soundIcon">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+        </button>
+        <button class="icon-btn" id="openSettingsBtn" title="設定時間與音量">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- 核心計時圓環 -->
+    <div class="timer-display-wrap">
+      <svg class="svg-ring" viewBox="0 0 320 320">
+        <circle class="ring-bg" cx="160" cy="160" r="144" />
+        <circle class="ring-progress" id="progressRing" cx="160" cy="160" r="144" />
+      </svg>
+      <div class="timer-content">
+        <div class="phase-badge" id="phaseBadge">READY</div>
+        <div class="time-text" id="timeDisplay">00:30</div>
+        <div class="round-info" id="roundDisplay">SET 1 / 5</div>
+      </div>
+    </div>
+
+    <!-- 總預估時間 -->
+    <div class="total-time-bar">
+      <span>預計總耗時:</span>
+      <strong id="totalEstimatedTime" style="color:var(--text-muted)">02:30</strong>
+    </div>
+
+    <!-- 主操作按鈕組 -->
+    <div class="controls">
+      <button class="btn btn-secondary" id="resetBtn" title="重設 (R)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+          <path d="M3 3v5h5"></path>
+        </svg>
+      </button>
+
+      <button class="btn btn-main" id="startBtn">
+        <span id="startBtnText">START</span>
+      </button>
+
+      <button class="btn btn-secondary" id="skipBtn" title="跳過本階段">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 4 15 12 5 20 5 4"></polygon>
+          <line x1="19" y1="5" x2="19" y2="19"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 鍵盤快捷鍵提示 -->
+    <div class="shortcuts-hint">
+      <span><kbd>Space</kbd> 開始/暫停</span>
+      <span><kbd>R</kbd> 重設</span>
+      <span><kbd>M</kbd> 靜音</span>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       設定彈出視窗 (Modal Dialog)
+       ========================================================= -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">計時與音效設定</div>
+        <button class="close-modal-btn" id="closeModalBtn" title="關閉">✕</button>
+      </div>
+
+      <!-- 設定網格：CSS Grid 保證 100% 絕對垂直切齊 -->
+      <div class="settings-grid">
+        
+        <!-- 1. 預備倒數 (前兩格留空，精準對齊到秒) -->
+        <div class="setting-label">
+          <span class="dot prep"></span>
+          <span>預備倒數</span>
+        </div>
+        <div class="grid-empty"></div>
+        <div class="grid-empty-unit"></div>
+        <div class="stepper">
+          <button class="step-btn" data-action="dec" data-type="prepSec">−</button>
+          <input type="text" inputmode="numeric" class="step-input" id="prepSec" value="05" maxlength="2">
+          <button class="step-btn" data-action="inc" data-type="prepSec">+</button>
+        </div>
+        <span class="unit-text">秒</span>
+
+        <!-- 2. 運動時間 (分 + 秒) -->
+        <div class="setting-label">
+          <span class="dot work"></span>
+          <span>運動時間</span>
+        </div>
+        <div class="stepper">
+          <button class="step-btn" data-action="dec" data-type="workMin">−</button>
+          <input type="text" inputmode="numeric" class="step-input" id="workMin" value="00" maxlength="2">
+          <button class="step-btn" data-action="inc" data-type="workMin">+</button>
+        </div>
+        <span class="unit-text">分</span>
+        <div class="stepper">
+          <button class="step-btn" data-action="dec" data-type="workSec">−</button>
+          <input type="text" inputmode="numeric" class="step-input" id="workSec" value="30" maxlength="2">
+          <button class="step-btn" data-action="inc" data-type="workSec">+</button>
+        </div>
+        <span class="unit-text">秒</span>
+
+        <!-- 3. 組間休息 (分 + 秒) -->
+        <div class="setting-label">
+          <span class="dot rest"></span>
+          <span>組間休息</span>
+        </div>
+        <div class="stepper">
+          <button class="step-btn" data-action="dec" data-type="restMin">−</button>
+          <input type="text" inputmode="numeric" class="step-input" id="restMin" value="00" maxlength="2">
+          <button class="step-btn" data-action="inc" data-type="restMin">+</button>
+        </div>
+        <span class="unit-text">分</span>
+        <div class="stepper">
+          <button class="step-btn" data-action="dec" data-type="restSec">−</button>
+          <input type="text" inputmode="numeric" class="step-input" id="restSec" value="15" maxlength="2">
+          <button class="step-btn" data-action="inc" data-type="restSec">+</button>
+        </div>
+        <span class="unit-text">秒</span>
+
+        <!-- 4. 重複組數 (前兩格留空，精準對齊到最後一欄) -->
+        <div class="setting-label">
+          <span class="dot sets"></span>
+          <span>重複組數</span>
+        </div>
+        <div class="grid-empty"></div>
+        <div class="grid-empty-unit"></div>
+        <div class="stepper">
+          <button class="step-btn" data-action="dec" data-type="totalSets">−</button>
+          <input type="text" inputmode="numeric" class="step-input" id="totalSets" value="5" maxlength="2">
+          <button class="step-btn" data-action="inc" data-type="totalSets">+</button>
+        </div>
+        <span class="unit-text">組</span>
+
+      </div>
+
+      <!-- 音量調整與英文人聲測試 -->
+      <div class="volume-box">
+        <div class="volume-title-row">
+          <span>提示音量調整</span>
+          <span class="volume-val-text" id="volumeValText">80%</span>
+        </div>
+        <div class="volume-slider-row">
+          <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="80">
+        </div>
+
+        <div class="voice-test-label">試聽英文教練人聲:</div>
+        <div class="voice-test-grid">
+          <button class="test-pill" id="testWorkVoiceBtn">
+            <strong>開始運動</strong>
+            <span class="sub">"Work!"</span>
+          </button>
+          <button class="test-pill" id="testRestVoiceBtn">
+            <strong>組間休息</strong>
+            <span class="sub">"Rest!"</span>
+          </button>
+          <button class="test-pill" id="testFinishVoiceBtn">
+            <strong>全部完成</strong>
+            <span class="sub">"Complete!"</span>
+          </button>
+        </div>
+      </div>
+
+      <button class="modal-save-btn" id="modalDoneBtn">完成並返回</button>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================
+       1. 英文人聲語音與音效引擎 (Web Speech API + Web Audio API)
+       ========================================================= */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.isMuted = false;
+        this.volume = 0.8;
+        this.synth = window.speechSynthesis;
+        this.selectedVoice = null;
+
+        if (this.synth) {
+          this.loadVoices();
+          if (this.synth.onvoiceschanged !== undefined) {
+            this.synth.onvoiceschanged = () => this.loadVoices();
+          }
+        }
+      }
+
+      loadVoices() {
+        if (!this.synth) return;
+        const voices = this.synth.getVoices();
+        this.selectedVoice = voices.find(v => v.lang.startsWith('en') && 
+          (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Daniel') || v.name.includes('Alex'))
+        ) || voices.find(v => v.lang.startsWith('en')) || null;
+      }
+
+      initContext() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      setVolume(valPercent) {
+        this.volume = Math.max(0, Math.min(100, valPercent)) / 100;
+        this.isMuted = (this.volume === 0);
+      }
+
+      toggleMute() {
+        this.isMuted = !this.isMuted;
+        return this.isMuted;
+      }
+
+      speak(text, rate = 1.05, pitch = 1.0) {
+        if (this.isMuted || this.volume <= 0 || !this.synth) return;
+
+        try {
+          this.synth.cancel();
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.lang = 'en-US';
+          utter.volume = this.volume;
+          utter.rate = rate;
+          utter.pitch = pitch;
+
+          if (!this.selectedVoice) {
+            this.loadVoices();
+          }
+          if (this.selectedVoice) {
+            utter.voice = this.selectedVoice;
+          }
+
+          this.synth.speak(utter);
+        } catch (e) {
+          console.warn('SpeechSynthesis error:', e);
+        }
+      }
+
+      playWorkStart() {
+        this.initContext();
+        this._tone(587.33, 'triangle', 0, 0.1, 0.18 * this.volume);
+        setTimeout(() => {
+          this.speak("Work!", 1.15, 1.05);
+        }, 80);
+      }
+
+      playRestStart() {
+        this.initContext();
+        this._tone(523.25, 'sine', 0, 0.15, 0.18 * this.volume);
+        setTimeout(() => {
+          this.speak("Rest!", 1.0, 0.95);
+        }, 100);
+      }
+
+      playPrepStart() {
+        this.speak("Get ready", 1.05, 1.0);
+      }
+
+      playCountdownVoice(number) {
+        const words = { 3: "Three", 2: "Two", 1: "One" };
+        const word = words[number] || String(number);
+        this.speak(word, 1.2, 1.0);
+      }
+
+      playVictory() {
+        this.initContext();
+        if (this.ctx) {
+          [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+            this._tone(freq, 'triangle', idx * 0.14, 0.22, 0.2 * this.volume);
+          });
+        }
+        setTimeout(() => {
+          this.speak("Workout complete! Great job!", 1.0, 1.05);
+        }, 200);
+      }
+
+      _tone(frequency, type, delay, duration, maxVolume = 0.2) {
+        if (!this.ctx || maxVolume <= 0.0001) return;
+        const startTime = this.ctx.currentTime + delay;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(frequency, startTime);
+
+        gain.gain.setValueAtTime(0.0001, startTime);
+        gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, maxVolume), startTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      }
+    }
+
+    const soundFx = new SoundEngine();
+
+    /* =========================================================
+       2. 計時器核心狀態 (Timer Engine)
+       ========================================================= */
+    const STATE = {
+      IDLE: 'IDLE',
+      PREP: 'PREP',
+      WORK: 'WORK',
+      REST: 'REST',
+      DONE: 'DONE'
+    };
+
+    let config = {
+      prepSec: 5,
+      workMin: 0,
+      workSec: 30,
+      restMin: 0,
+      restSec: 15,
+      totalSets: 5
+    };
+
+    let currentPhase = STATE.IDLE;
+    let isRunning = false;
+    let currentSet = 1;
+    let secondsLeft = 30;
+    let phaseTotalDuration = 30;
+    let timerInterval = null;
+    let wakeLock = null;
+
+    // DOM 元素
+    const phaseBadge = document.getElementById('phaseBadge');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const roundDisplay = document.getElementById('roundDisplay');
+    const totalEstimatedTime = document.getElementById('totalEstimatedTime');
+    const progressRing = document.getElementById('progressRing');
+    const startBtn = document.getElementById('startBtn');
+    const startBtnText = document.getElementById('startBtnText');
+    const resetBtn = document.getElementById('resetBtn');
+    const skipBtn = document.getElementById('skipBtn');
+    const soundToggleBtn = document.getElementById('soundToggleBtn');
+    const soundIcon = document.getElementById('soundIcon');
+    const openSettingsBtn = document.getElementById('openSettingsBtn');
+    const closeSettingsBtn = document.getElementById('closeModalBtn');
+    const modalDoneBtn = document.getElementById('modalDoneBtn');
+    const settingsModal = document.getElementById('settingsModal');
+    const volumeSlider = document.getElementById('volumeSlider');
+    const volumeValText = document.getElementById('volumeValText');
+
+    // 輸入框 DOM
+    const inputPrepSec = document.getElementById('prepSec');
+    const inputWorkMin = document.getElementById('workMin');
+    const inputWorkSec = document.getElementById('workSec');
+    const inputRestMin = document.getElementById('restMin');
+    const inputRestSec = document.getElementById('restSec');
+    const inputTotalSets = document.getElementById('totalSets');
+
+    const RING_CIRCUMFERENCE = 2 * Math.PI * 144;
+    progressRing.style.strokeDasharray = RING_CIRCUMFERENCE;
+
+    /* =========================================================
+       3. 畫面更新與色彩
+       ========================================================= */
+    function formatTime(totalSec) {
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function updateDisplay() {
+      timeDisplay.textContent = formatTime(secondsLeft);
+      roundDisplay.textContent = `SET ${currentSet} / ${config.totalSets}`;
+
+      if (phaseTotalDuration > 0) {
+        const fraction = secondsLeft / phaseTotalDuration;
+        const offset = RING_CIRCUMFERENCE * (1 - fraction);
+        progressRing.style.strokeDashoffset = offset;
+      } else {
+        progressRing.style.strokeDashoffset = 0;
+      }
+    }
+
+    function setPhaseTheme(phase) {
+      const root = document.documentElement;
+      let activeColor = '#10b981';
+      let activeGlow = 'rgba(16, 185, 129, 0.28)';
+      let badgeText = 'WORK';
+
+      switch (phase) {
+        case STATE.IDLE:
+          activeColor = '#10b981';
+          activeGlow = 'rgba(16, 185, 129, 0.28)';
+          badgeText = 'READY';
+          break;
+        case STATE.PREP:
+          activeColor = '#6366f1';
+          activeGlow = 'rgba(99, 102, 241, 0.28)';
+          badgeText = 'GET READY';
+          break;
+        case STATE.WORK:
+          activeColor = '#10b981';
+          activeGlow = 'rgba(16, 185, 129, 0.28)';
+          badgeText = 'WORK';
+          break;
+        case STATE.REST:
+          activeColor = '#f59e0b';
+          activeGlow = 'rgba(245, 158, 11, 0.28)';
+          badgeText = 'REST';
+          break;
+        case STATE.DONE:
+          activeColor = '#a855f7';
+          activeGlow = 'rgba(168, 85, 247, 0.35)';
+          badgeText = 'FINISHED!';
+          break;
+      }
+
+      root.style.setProperty('--active-color', activeColor);
+      root.style.setProperty('--active-glow', activeGlow);
+      phaseBadge.textContent = badgeText;
+      phaseBadge.style.color = activeColor;
+    }
+
+    function calculateTotalEstimatedSeconds() {
+      const prep = config.prepSec;
+      const work = config.workMin * 60 + config.workSec;
+      const rest = config.restMin * 60 + config.restSec;
+      if (config.totalSets <= 0) return 0;
+      return prep + (work * config.totalSets) + (rest * Math.max(0, config.totalSets - 1));
+    }
+
+    function updateTotalEstimateUI() {
+      totalEstimatedTime.textContent = formatTime(calculateTotalEstimatedSeconds());
+    }
+
+    /* =========================================================
+       4. 計時邏輯運算
+       ========================================================= */
+    function getWorkDuration() {
+      return config.workMin * 60 + config.workSec;
+    }
+
+    function getRestDuration() {
+      return config.restMin * 60 + config.restSec;
+    }
+
+    function startTimer() {
+      soundFx.initContext();
+      requestWakeLock();
+
+      if (currentPhase === STATE.IDLE || currentPhase === STATE.DONE) {
+        currentSet = 1;
+
+        if (config.prepSec > 0) {
+          currentPhase = STATE.PREP;
+          phaseTotalDuration = config.prepSec;
+          secondsLeft = config.prepSec;
+          setPhaseTheme(STATE.PREP);
+          soundFx.playPrepStart();
+        } else {
+          currentPhase = STATE.WORK;
+          phaseTotalDuration = getWorkDuration();
+          secondsLeft = phaseTotalDuration;
+          setPhaseTheme(STATE.WORK);
+          soundFx.playWorkStart();
+        }
+      }
+
+      isRunning = true;
+      startBtnText.textContent = 'PAUSE';
+      startBtn.style.opacity = '0.92';
+
+      timerInterval = setInterval(onTick, 1000);
+      updateDisplay();
+    }
+
+    function pauseTimer() {
+      isRunning = false;
+      startBtnText.textContent = 'RESUME';
+      startBtn.style.opacity = '1';
+      clearInterval(timerInterval);
+      releaseWakeLock();
+    }
+
+    function toggleTimer() {
+      if (isRunning) {
+        pauseTimer();
+      } else {
+        startTimer();
+      }
+    }
+
+    function onTick() {
+      if (secondsLeft > 1) {
+        secondsLeft--;
+        if (secondsLeft <= 3 && currentPhase !== STATE.DONE) {
+          soundFx.playCountdownVoice(secondsLeft);
+        }
+        updateDisplay();
+      } else {
+        transitionPhase();
+      }
+    }
+
+    function transitionPhase() {
+      if (currentPhase === STATE.PREP) {
+        currentPhase = STATE.WORK;
+        phaseTotalDuration = getWorkDuration();
+        secondsLeft = phaseTotalDuration;
+        setPhaseTheme(STATE.WORK);
+        soundFx.playWorkStart();
+      } else if (currentPhase === STATE.WORK) {
+        if (currentSet < config.totalSets) {
+          const restDuration = getRestDuration();
+          if (restDuration > 0) {
+            currentPhase = STATE.REST;
+            phaseTotalDuration = restDuration;
+            secondsLeft = phaseTotalDuration;
+            setPhaseTheme(STATE.REST);
+            soundFx.playRestStart();
+          } else {
+            currentSet++;
+            phaseTotalDuration = getWorkDuration();
+            secondsLeft = phaseTotalDuration;
+            setPhaseTheme(STATE.WORK);
+            soundFx.playWorkStart();
+          }
+        } else {
+          finishWorkout();
+          return;
+        }
+      } else if (currentPhase === STATE.REST) {
+        currentSet++;
+        currentPhase = STATE.WORK;
+        phaseTotalDuration = getWorkDuration();
+        secondsLeft = phaseTotalDuration;
+        setPhaseTheme(STATE.WORK);
+        soundFx.playWorkStart();
+      }
+
+      updateDisplay();
+    }
+
+    function skipPhase() {
+      if (currentPhase === STATE.IDLE || currentPhase === STATE.DONE) return;
+      transitionPhase();
+    }
+
+    function finishWorkout() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      currentPhase = STATE.DONE;
+      secondsLeft = 0;
+      phaseTotalDuration = 0;
+      setPhaseTheme(STATE.DONE);
+      startBtnText.textContent = 'AGAIN';
+      soundFx.playVictory();
+      updateDisplay();
+      releaseWakeLock();
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      currentPhase = STATE.IDLE;
+      currentSet = 1;
+      phaseTotalDuration = getWorkDuration();
+      secondsLeft = phaseTotalDuration;
+      setPhaseTheme(STATE.IDLE);
+      startBtnText.textContent = 'START';
+      updateDisplay();
+      releaseWakeLock();
+    }
+
+    /* =========================================================
+       5. 本地快取 (LocalStorage) 與彈窗管理
+       ========================================================= */
+    const STORAGE_KEY = 'minimalist_workout_timer_settings_v1';
+
+    function saveConfigToStorage() {
+      try {
+        const payload = {
+          config: config,
+          volume: Math.round(soundFx.volume * 100),
+          isMuted: soundFx.isMuted
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      } catch (e) {
+        console.warn('LocalStorage save failed:', e);
+      }
+    }
+
+    function loadConfigFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data && data.config) {
+            if (typeof data.config.prepSec === 'number') config.prepSec = data.config.prepSec;
+            if (typeof data.config.workMin === 'number') config.workMin = data.config.workMin;
+            if (typeof data.config.workSec === 'number') config.workSec = data.config.workSec;
+            if (typeof data.config.restMin === 'number') config.restMin = data.config.restMin;
+            if (typeof data.config.restSec === 'number') config.restSec = data.config.restSec;
+            if (typeof data.config.totalSets === 'number') config.totalSets = data.config.totalSets;
+          }
+          if (typeof data.volume === 'number') {
+            soundFx.setVolume(data.volume);
+            volumeSlider.value = data.volume;
+            volumeValText.textContent = `${data.volume}%`;
+          }
+          if (typeof data.isMuted === 'boolean') {
+            soundFx.isMuted = data.isMuted;
+            syncMuteIcon(data.isMuted);
+          }
+        }
+      } catch (e) {
+        console.warn('LocalStorage load failed:', e);
+      }
+    }
+
+    function openModal() {
+      settingsModal.classList.add('open');
+    }
+
+    function closeModal() {
+      settingsModal.classList.remove('open');
+      saveConfigToStorage();
+    }
+
+    openSettingsBtn.addEventListener('click', openModal);
+    closeSettingsBtn.addEventListener('click', closeModal);
+    modalDoneBtn.addEventListener('click', closeModal);
+
+    settingsModal.addEventListener('click', (e) => {
+      if (e.target === settingsModal) {
+        closeModal();
+      }
+    });
+
+    // 步進調整
+    function adjustSetting(type, action) {
+      if (isRunning) return;
+
+      const delta = action === 'inc' ? 1 : -1;
+
+      switch (type) {
+        case 'prepSec':
+          config.prepSec = Math.max(0, Math.min(60, config.prepSec + delta));
+          break;
+        case 'workMin':
+          config.workMin = Math.max(0, Math.min(59, config.workMin + delta));
+          break;
+        case 'workSec':
+          config.workSec = Math.max(0, Math.min(59, config.workSec + (delta * 5)));
+          break;
+        case 'restMin':
+          config.restMin = Math.max(0, Math.min(59, config.restMin + delta));
+          break;
+        case 'restSec':
+          config.restSec = Math.max(0, Math.min(59, config.restSec + (delta * 5)));
+          break;
+        case 'totalSets':
+          config.totalSets = Math.max(1, Math.min(99, config.totalSets + delta));
+          break;
+      }
+
+      if (config.workMin === 0 && config.workSec === 0) {
+        config.workSec = 5;
+      }
+
+      updateSettingsInputs();
+      resetTimer();
+      saveConfigToStorage();
+    }
+
+    // 手動輸入值驗證與套用
+    function handleManualInput(type, inputEl) {
+      if (isRunning) return;
+      let val = parseInt(inputEl.value, 10);
+      if (isNaN(val) || val < 0) val = 0;
+
+      switch (type) {
+        case 'prepSec':
+          config.prepSec = Math.min(60, val);
+          break;
+        case 'workMin':
+          config.workMin = Math.min(59, val);
+          break;
+        case 'workSec':
+          config.workSec = Math.min(59, val);
+          break;
+        case 'restMin':
+          config.restMin = Math.min(59, val);
+          break;
+        case 'restSec':
+          config.restSec = Math.min(59, val);
+          break;
+        case 'totalSets':
+          config.totalSets = Math.max(1, Math.min(99, val));
+          break;
+      }
+
+      if (config.workMin === 0 && config.workSec === 0) {
+        config.workSec = 5;
+      }
+
+      updateSettingsInputs();
+      resetTimer();
+      saveConfigToStorage();
+    }
+
+    function updateSettingsInputs() {
+      inputPrepSec.value = String(config.prepSec).padStart(2, '0');
+      inputWorkMin.value = String(config.workMin).padStart(2, '0');
+      inputWorkSec.value = String(config.workSec).padStart(2, '0');
+      inputRestMin.value = String(config.restMin).padStart(2, '0');
+      inputRestSec.value = String(config.restSec).padStart(2, '0');
+      inputTotalSets.value = String(config.totalSets);
+      updateTotalEstimateUI();
+    }
+
+    // 綁定手 key 事件
+    [
+      { id: 'prepSec', type: 'prepSec' },
+      { id: 'workMin', type: 'workMin' },
+      { id: 'workSec', type: 'workSec' },
+      { id: 'restMin', type: 'restMin' },
+      { id: 'restSec', type: 'restSec' },
+      { id: 'totalSets', type: 'totalSets' }
+    ].forEach(({ id, type }) => {
+      const el = document.getElementById(id);
+      
+      // 點擊即全選內容，方便使用者直接打字
+      el.addEventListener('focus', () => {
+        el.select();
+      });
+
+      // 離開焦點或按 Enter 時驗證
+      el.addEventListener('blur', () => {
+        handleManualInput(type, el);
+      });
+
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          el.blur();
+        }
+      });
+    });
+
+    /* =========================================================
+       6. 喚醒螢幕常亮 (Screen Wake Lock API)
+       ========================================================= */
+    async function requestWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+        } catch (err) {}
+      }
+    }
+
+    function releaseWakeLock() {
+      if (wakeLock) {
+        wakeLock.release().then(() => {
+          wakeLock = null;
+        }).catch(() => {});
+      }
+    }
+
+    /* =========================================================
+       7. 事件綁定與音效測試
+       ========================================================= */
+    startBtn.addEventListener('click', toggleTimer);
+    resetBtn.addEventListener('click', resetTimer);
+    skipBtn.addEventListener('click', skipPhase);
+
+    // 步進器按鈕委託
+    document.querySelectorAll('.step-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+        const type = btn.dataset.type;
+        adjustSetting(type, action);
+      });
+    });
+
+    // 音量滑桿
+    volumeSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      volumeValText.textContent = `${val}%`;
+      soundFx.setVolume(val);
+      syncMuteIcon(val === 0);
+      saveConfigToStorage();
+    });
+
+    function syncMuteIcon(isMuted) {
+      soundToggleBtn.classList.toggle('active', isMuted);
+      if (isMuted) {
+        soundIcon.innerHTML = `
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <line x1="23" y1="9" x2="17" y2="15"></line>
+          <line x1="17" y1="9" x2="23" y2="15"></line>
+        `;
+      } else {
+        soundIcon.innerHTML = `
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+        `;
+      }
+    }
+
+    // 靜音切換
+    soundToggleBtn.addEventListener('click', () => {
+      const isMuted = soundFx.toggleMute();
+      syncMuteIcon(isMuted);
+      if (isMuted) {
+        volumeValText.textContent = '0%';
+      } else {
+        const currentPercent = Math.round(soundFx.volume * 100);
+        volumeValText.textContent = `${currentPercent}%`;
+      }
+      saveConfigToStorage();
+    });
+
+    // 英文人聲試聽按鈕
+    document.getElementById('testWorkVoiceBtn').addEventListener('click', () => {
+      soundFx.playWorkStart();
+    });
+    document.getElementById('testRestVoiceBtn').addEventListener('click', () => {
+      soundFx.playRestStart();
+    });
+    document.getElementById('testFinishVoiceBtn').addEventListener('click', () => {
+      soundFx.playVictory();
+    });
+
+    // 鍵盤操作
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        toggleTimer();
+      } else if (e.code === 'KeyR') {
+        e.preventDefault();
+        resetTimer();
+      } else if (e.code === 'KeyM') {
+        e.preventDefault();
+        soundToggleBtn.click();
+      } else if (e.code === 'Escape') {
+        closeModal();
+      }
+    });
+
+    // 初始化頁面 (先讀取本地快取，再更新 UI 與計時器)
+    loadConfigFromStorage();
+    updateSettingsInputs();
+    resetTimer();
+  </script>
+</body>
+</html>
